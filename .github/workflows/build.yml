@@ -1,0 +1,40 @@
+name: Build IPA
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Tạo App & Đóng gói IPA
+        run: |
+          flutter create app --org com.vip
+          cd app
+          cat << 'EOF' > lib/main.dart
+          import 'package:flutter/material.dart';
+          void main() => runApp(const MaterialApp(home: Menu()));
+          class Menu extends StatefulWidget { const Menu({super.key}); @override State<Menu> createState() => _M(); }
+          class _M extends State<Menu> {
+            final f = {'AIM CHEAT': false, 'AIM NECK': false, 'AIM DRAG': false, 'AIMLOCK 40%': false, 'ESP LINE': false};
+            @override
+            Widget build(BuildContext context) => Scaffold(
+              backgroundColor: const Color(0xFF0F0C20),
+              appBar: AppBar(title: const Text('Menu Free Fire', style: TextStyle(color: Colors.white)), backgroundColor: Colors.transparent),
+              body: Column(children: [
+                Expanded(child: ListView(children: f.keys.map((k) => Card(color: const Color(0xFF1B1633), child: SwitchListTile(activeColor: Colors.deepPurpleAccent, title: Text(k, style: const TextStyle(color: Colors.white)), value: f[k]!, onChanged: (v) => setState(() => f[k] = v)))).toList())),
+                Padding(padding: const EdgeInsets.all(16), child: SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C4AB6)), onPressed: () {}, child: const Text('Mở game ngay', style: TextStyle(color: Colors.white, fontSize: 16)))))
+              ]),
+            );
+          }
+          EOF
+          flutter build ios --no-codesign --release
+          mkdir -p Payload && cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r MyMenuApp.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyMenuApp-IPA
+          path: app/MyMenuApp.ipa
